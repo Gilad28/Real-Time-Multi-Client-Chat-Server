@@ -1,4 +1,4 @@
-This project uses react, node.js, mongoDB, Socket.io, and will be hosted on Sevalla
+This project uses react, node.js, mongoDB, and Socket.io.
 
 To run the project open a command prompt terminal and run the command:
 
