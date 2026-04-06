@@ -1,0 +1,14 @@
+{
+  "name": "multichatclient",
+  "version": "1.0.0",
+  "description": "To run the frontend open a cmd Terminal window and run the following command",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "npm run start --prefix backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
