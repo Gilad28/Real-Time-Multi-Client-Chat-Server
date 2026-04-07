@@ -40,4 +40,6 @@ Backend:
     /src/lib/resend.js
     /src/lib/env.js
     /src/lib/cloudinary.js
+    /src/models/Groups.js
+    /src/models/Message.js
 Frontend:
