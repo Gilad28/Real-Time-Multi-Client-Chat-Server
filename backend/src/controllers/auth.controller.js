@@ -4,6 +4,16 @@ import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs"
 
+/*
+this controller is used when an account is trying to signup using the form below as raw json
+{
+    {
+    "username":"         ",
+    "email":"              ",
+    "password":"       "
+    }
+}
+*/
 export const signup = async (req, res) => {
     const {username, email, password} = req.body
 
@@ -73,10 +83,52 @@ export const signup = async (req, res) => {
     }
 };
 
+/*
+this controller is used when an account is trying to login using the form below as raw json
+{
+    "email":"          ",
+    "password":"       "
+}
+*/
 export const login = async (req, res) => {
-    res.send("login endpoint");
+    const {email, password} = req.body
+
+    try {
+        const user = await User.findOne({email});
+
+        if (!user) {
+            // Don't say which part of the login was invalid
+            return res.status(400).json({message: "Invalid Credentials Entered"});
+        }
+
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordCorrect) {
+            // Don't say which part of the login was invalid
+            return res.status(400).json({message: "Invalid Credentials Entered"});
+        }
+
+        // user is authenticated
+        generateToken(user._id, res);
+
+        res.status(200).json({
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            profilePic: user.profilePicture,
+        });
+
+    } catch (error) {
+        console.error("Error in login controller: ", error);
+        res.status(500).json({message: "Internal Server Error"});
+    }
 };
 
+/*
+This controller requires no input or "req" and simply removes the cookie from the user
+*/
 export const logout = async (req, res) => {
-    res.send("logout endpoint");
+    // remove cookie jwt from user on log out
+    res.cookie("jwt","",{maxAge: 0});
+    res.status(200).json({ message: "Logged Out Successfully!" });
 };
