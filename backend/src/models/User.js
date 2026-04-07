@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
         required: true,
         unqiue: true,
     },
-    userName: {
+    username: {
         type: String,
         required: true,
     },
@@ -20,9 +20,9 @@ const userSchema = new mongoose.Schema({
         default: "",
     },
 }, 
-{timestamps: true } // used to keep logs like createdAt and updatedAt
+    {timestamps: true } // used to keep logs like createdAt and updatedAt
 );
 
-const User = mongoose.model("User", userSchema)4
+const User = mongoose.model("User", userSchema);
 
 export default User;

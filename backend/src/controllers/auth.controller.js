@@ -1,5 +1,8 @@
+import { generateToken } from "../lib/utils.js";
+import User from "../models/User.js";
+import bcrypt from "bcryptjs"
+
 export const signup = async (req, res) => {
-    res.send("Signup endpoint");
     const {username, email, password} = req.body
 
     try {
@@ -22,8 +25,42 @@ export const signup = async (req, res) => {
             return res.status(400).json({message:"Invalid email entered"});
         }
 
-    } catch (error) {
+        const user = await User.findOne({email})
+        if (user) {
+            // return error code 400 for bad request and send error message to user
+            return res.status(400).json({message:"Email already exists please login instead"});
+        }
 
+        // this encrypts the user's password so it's not stored in the database as is
+        const saltHash = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, saltHash);
+
+        // creates a new user for mongoDB to store
+        const newUser = new User({
+            username,
+            email,
+            password: passwordHash
+        });
+
+        if (newUser) {
+            generateToken(newUser._id, res);
+            await newUser.save();
+
+            res.status(201).json({
+                _id:newUser._id,
+                username:newUser.username,
+                email:newUser.email,
+                profilePic:newUser.profilePicture,
+            });
+        }
+        else {
+            // return error code 400 for bad request and send error message to user
+            return res.status(400).json({message:"Invalid new user"});
+        }
+
+    } catch (error) {
+        console.log("Error in the singup controller: ", error);
+        res.status(500).json({message: "Internal error "});
     }
 };
 
