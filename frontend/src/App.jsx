@@ -37,6 +37,31 @@ function App() {
     }
   }, [activeId]);
 
+
+  //starts a new chat
+  async function startChat()
+  {
+
+    const emailToMessage = prompt("Enter email:");
+    if (!emailToMessage) return;
+
+    const response = await fetch('/api/message/directMessages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email: emailToMessage })
+    })
+
+    const newConv = await response.json();
+
+    if(response.ok) {
+      setConversations([...conversations, newConv]);
+      setActiveId(newConv._id);
+    }else{
+      console.error('Error:', newConv.message);
+    }
+  }
+
   // join the chatroom
   // mioght need to change on the backend
   async function handleJoin(e) {
@@ -140,14 +165,26 @@ function App() {
   return (
     <div className="chat-room">
 
-      <h2>Welcome, {name}</h2>
+      
       <div className="sidebar">
-        {conversations.map(conv => (
-          <button key={conv._id} onClick={() => setActiveId(conv._id)}>
-            {conv.groupName || "Direct Message"}
-          </button>
-        ))}
+        <h3>Chats</h3>
+        <button onClick={startChat} style={{background: '#28a745', color: 'white'}}>
+            + New DM
+        </button>
+        {conversations.length === 0 ? (
+          <p style={{ fontSize: '12px', color: 'gray' }}>No chats yet</p>
+        ) : (
+          conversations.map(conv => (
+            <button key={conv._id} onClick={() => setActiveId(conv._id)}>
+              {conv.groupName || "Direct Message"}
+            </button>
+          ))
+        )}
       </div>
+
+      <div className="main-content">
+        <h2>Welcome, {name}</h2>
+
       <div className="messages">
         {!activeId ? (
           <div className="no-chat">Select a conversation to start chatting</div>
@@ -174,6 +211,7 @@ function App() {
         
         <button type="submit">Send</button>
       </form>
+    </div>
     </div>
   )
 }
