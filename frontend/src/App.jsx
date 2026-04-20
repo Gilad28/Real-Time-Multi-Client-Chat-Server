@@ -149,6 +149,36 @@ async function renameChat()
     }
   }
 
+  // creates a group chat multiuser
+  async function createGroupChat() {
+    const rawEmails = prompt("Enter emails (comma separated):");
+    if (!rawEmails) return;
+
+    const emails = rawEmails
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    if (emails.length === 0) return;
+
+    const groupNameInput = prompt("Enter group name (optional):") || "";
+
+    const response = await fetch("/api/message/groupMessages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ emails, groupname: groupNameInput }),
+    });
+
+    const newConv = await response.json();
+    if (response.ok) {
+      setConversations((prev) => [newConv, ...prev]);
+      setActiveId(newConv._id);
+    } else {
+      alert(newConv.message || "Failed to create group chat");
+    }
+  }
+
   // join the chatroom
   // mioght need to change on the backend
   async function handleJoin(e) {
@@ -265,8 +295,11 @@ async function renameChat()
       
       <div className="sidebar">
         <h3 style={{ color: "#000" }}>Chats</h3>
-        <button onClick={startChat} style={{background: '#28a745', color: 'white'}}>
+        <button onClick={createGroupChat} style={{background: '#28a745', color: 'white'}}>
             + New Group Chat
+        </button>
+        <button onClick={startChat} style={{background: '#000', color: 'white'}}>
+            + New DM
         </button>
 
         {directAndGroupChats.length === 0 ? (
