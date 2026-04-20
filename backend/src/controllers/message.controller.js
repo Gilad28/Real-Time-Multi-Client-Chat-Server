@@ -2,6 +2,37 @@ import Conversation from "../models/Groups.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js"
 
+
+
+// This is our public chatrooms
+const DEFAULT_PUBLIC_ROOMS = [
+    { roomKey: "global", groupName: "Global" },
+    { roomKey: "sports", groupName: "Sports" },
+    { roomKey: "gaming", groupName: "Gaming" },
+    { roomKey: "music", groupName: "Music" },
+];
+
+// makes it so they have default chat rooms
+const ensureDefaultPublicRooms = async () => {
+    await Promise.all(
+        DEFAULT_PUBLIC_ROOMS.map((room) =>
+            Conversation.updateOne(
+                { roomKey: room.roomKey, isPublicRoom: true },
+                {
+                    $setOnInsert: {
+                        participants: [],
+                        isGroupChat: true,
+                        isPublicRoom: true,
+                        roomKey: room.roomKey,
+                        groupName: room.groupName,
+                    },
+                },
+                { upsert: true }
+            )
+        )
+    );
+};
+
 /*
     Creates or fetches a 1-on-1 DM based on an email input.
     Expects: { "email": "target@example.com" }
@@ -107,9 +138,14 @@ export const getConversations = async (req, res) => {
             return res.status(400).json({ message: "UserId was undefined"});
         }
 
+        await ensureDefaultPublicRooms();
+
         // Finds any conversation where the participates array has the current User's ID
         const conversationsList = await Conversation.find({
-            participants: { $in: [currentUserId]}
+            $or: [
+                { participants: { $in: [currentUserId]} },
+                { isPublicRoom: true }
+            ]
         })
 
         .populate("participants", "-password")
@@ -133,13 +169,17 @@ export const sendMessage = async (req, res) => {
         const { conversationId } = req.params;
         const senderId = req.user._id;
 
-        const currentConversation = await Conversation.findOne({
-            _id: conversationId,
-            participants: { $in: [senderId]}
-        });
+        const currentConversation = await Conversation.findById(conversationId);
+
+        const hasAccess = currentConversation && (
+            currentConversation.isPublicRoom ||
+            currentConversation.participants.some(
+                (participantId) => participantId.toString() === senderId.toString()
+            )
+        );
 
         // checks if the user has access to the conversation
-        if (!currentConversation) {
+        if (!hasAccess) {
             return res.status(400).json({ message: "Could not send message to the conversation."});
         }
 
@@ -153,8 +193,15 @@ export const sendMessage = async (req, res) => {
 
         // should send new message to the chat
         await inputMessage.save();
+        const populatedMessage = await inputMessage.populate("senderId", "username profilePicture");
         await Conversation.findByIdAndUpdate(conversationId, { updatedAt: new Date()});
-        res.status(201).json(inputMessage);
+
+        const io = req.app.get("io");
+        if (io) {
+            io.to(conversationId).emit("new-message", populatedMessage);
+        }
+
+        res.status(201).json(populatedMessage);
     } catch ( error ) {
         console.error("Internal Error in sendMessage: ", error);
         res.status(500).json({ message: "Internal server error" });
@@ -170,12 +217,16 @@ export const getMessages = async (req, res) => {
         const currentUserId = req.user._id;
 
         // Security check: Only allow fetching if the user is in the chat
-        const conversation = await Conversation.findOne({
-            _id: conversationId,
-            participants: { $in: [currentUserId] }
-        });
+        const conversation = await Conversation.findById(conversationId);
 
-        if (!conversation) {
+        const hasAccess = conversation && (
+            conversation.isPublicRoom ||
+            conversation.participants.some(
+                (participantId) => participantId.toString() === currentUserId.toString()
+            )
+        );
+
+        if (!hasAccess) {
             return res.status(401).json({ message: "Unauthorized to view this conversation." });
         }
 

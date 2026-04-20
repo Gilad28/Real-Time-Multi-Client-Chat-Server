@@ -5,6 +5,14 @@ const conversationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }],
+    isPublicRoom: {
+        type: Boolean,
+        default: false,
+    },
+    roomKey: {
+        type: String,
+        default: null,
+    },
     isGroupChat: {
         type: Boolean,
         default: false

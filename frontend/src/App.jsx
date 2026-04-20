@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { io } from 'socket.io-client'
 import './App.css'
 
 function App() {
@@ -16,6 +17,59 @@ function App() {
 
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [username, setUsername] = useState('');
+  const socketRef = useRef(null);
+
+  const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+  // socket connection and listners
+  useEffect(() => {
+    if (!inChat) return;
+
+    const socket = io(SOCKET_URL, {
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+    });
+
+    socketRef.current = socket;
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [inChat, SOCKET_URL]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !activeId) return;
+
+    socket.emit('join-conversation', activeId);
+
+    return () => {
+      socket.emit('leave-conversation', activeId);
+    };
+  }, [activeId]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    const handleIncomingMessage = (message) => {
+      if (!message?.conversationId) return;
+      if (String(message.conversationId) !== String(activeId)) return;
+
+      setMessages((prev) => {
+        const exists = prev.some((msg) => msg._id === message._id);
+        if (exists) return prev;
+        return [...prev, message];
+      });
+    };
+
+    socket.on('new-message', handleIncomingMessage);
+
+    return () => {
+      socket.off('new-message', handleIncomingMessage);
+    };
+  }, [activeId, inChat]);
 
 
   useEffect(() => {
@@ -114,10 +168,20 @@ function App() {
 
     if (response.ok) {
       const message = await response.json()
-      setMessages([...messages, message])
+      setMessages((prev) => {
+        const exists = prev.some((msg) => msg._id === message._id);
+        if (exists) return prev;
+        return [...prev, message];
+      })
       setText('')
     }
   }
+
+  // seperate chatrooms and public rooms also finds the active chat name to display in the UI
+  const directAndGroupChats = conversations.filter((conv) => !conv.isPublicRoom);
+  const publicRooms = conversations.filter((conv) => conv.isPublicRoom);
+  const activeConversation = conversations.find((conv) => conv._id === activeId);
+  const activeChatName = activeConversation?.groupName || (activeId ? 'Direct Message' : 'None');
 
   if (!inChat) {
     return (
@@ -171,19 +235,42 @@ function App() {
         <button onClick={startChat} style={{background: '#28a745', color: 'white'}}>
             + New DM
         </button>
-        {conversations.length === 0 ? (
+
+        {directAndGroupChats.length === 0 ? (
           <p style={{ fontSize: '12px', color: 'gray' }}>No chats yet</p>
         ) : (
-          conversations.map(conv => (
-            <button key={conv._id} onClick={() => setActiveId(conv._id)}>
+          directAndGroupChats.map(conv => (
+            <button
+              key={conv._id}
+              onClick={() => setActiveId(conv._id)}
+              className={activeId === conv._id ? 'active-chat' : ''}
+            >
               {conv.groupName || "Direct Message"}
             </button>
           ))
         )}
+
+        <div className="sidebar-public-section">
+          <p className="sidebar-section-title">Public Rooms</p>
+          {publicRooms.length === 0 ? (
+            <p style={{ fontSize: '12px', color: 'gray' }}>No public rooms</p>
+          ) : (
+            publicRooms.map((room) => (
+              <button
+                key={room._id}
+                onClick={() => setActiveId(room._id)}
+                className={activeId === room._id ? 'active-chat' : ''}
+              >
+                {room.groupName}
+              </button>
+            ))
+          )}
+        </div>
       </div>
 
       <div className="main-content">
         <h2>Welcome, {name}</h2>
+        <p className="current-chatroom">Current chatroom: <strong>{activeChatName}</strong></p>
 
       <div className="messages">
         {!activeId ? (

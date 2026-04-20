@@ -1,8 +1,10 @@
 // this bypasses Windows DNS resolver for mongoose to establish a connection to mongoDB
 import dns from "node:dns";
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
+import { createServer } from "node:http";
 // This is using the express package to run the backend
 import express from "express";
+import { Server } from "socket.io";
 // This is used to access the .env variables to avoid needing to hardcode them
 import dotenv from "dotenv";
 dotenv.config();
@@ -18,8 +20,19 @@ import { connectDB } from "./lib/db.js"
 import cookieParser from "cookie-parser"
 
 const app = express();
+const server = createServer(app);
 const __dirname = path.resolve();
 const PORT = process.env.PORT;
+
+// CORS for two dif ports
+const io = new Server(server, {
+    cors: {
+        origin: process.env.CLIENT_URL || "http://localhost:5173",
+        credentials: true,
+    },
+});
+
+app.set("io", io);
 
 // Middleware
 // This command allows input from the users in the req.body
@@ -30,6 +43,25 @@ app.use(cookieParser())
 app.use("/api/auth", authRoutes);
 app.use("/api/message", messageRoutes);
 
+// Socket.io connection handling
+io.on("connection", (socket) => {
+    console.log(`Socket connected: ${socket.id}`);
+
+    socket.on("join-conversation", (conversationId) => {
+        if (!conversationId) return;
+        socket.join(conversationId);
+    });
+
+    socket.on("leave-conversation", (conversationId) => {
+        if (!conversationId) return;
+        socket.leave(conversationId);
+    });
+
+    socket.on("disconnect", () => {
+        console.log(`Socket disconnected: ${socket.id}`);
+    });
+});
+
 // Get ready for deployment when terminal command "npm run start" is used
 if (process.env.NODE_ENV === "production" ){
     app.use(express.static(path.join(__dirname, "../frontend/dist")));
@@ -39,7 +71,7 @@ if (process.env.NODE_ENV === "production" ){
     });
 }
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log("Server is operational and running on port: " + PORT);
     connectDB();
 });
