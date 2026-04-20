@@ -54,12 +54,21 @@ body {
 }
 
 .chat-room {
-  max-width: 700px;
+  max-width: 900px;
   margin: 40px auto;
-  padding: 20px;
-  background: rgb(255, 255, 255);
-  border: 1px solid #000000;
+  display: flex;
+  background: white;
+  border: 1px solid #000;
   border-radius: 8px;
+  height: 500px;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
 }
 
 .messages {
@@ -111,4 +120,25 @@ body {
 
 .chat-room button:hover {
   background: #0056b3;
+}
+
+.sidebar {
+  width: 200px;
+  background: #f8f9fa;
+  border-right: 1px solid #ddd;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #286cba;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }

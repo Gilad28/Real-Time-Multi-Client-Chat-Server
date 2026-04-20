@@ -1,5 +1,4 @@
-.idea/
-client
-server
-*.out
-.DS_Store
+node_modules/
+.env
+frontend/node_modules/
+backend/node_modules/
