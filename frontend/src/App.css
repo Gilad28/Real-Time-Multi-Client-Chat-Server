@@ -7,15 +7,17 @@ body {
 .join-screen {
   height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 16px;
 }
 
 .join-screen form {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: 260px;
+  width: 450px;
   padding: 25px;
   border: 1px solid #ddd;
   background: white;

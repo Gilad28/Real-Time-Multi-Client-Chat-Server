@@ -249,8 +249,10 @@ async function renameChat()
   if (!inChat) {
     return (
       <div className="join-screen">
-        <h1>{isSigningUp ? 'Sign Up' : 'Login'}</h1>
         <form onSubmit={handleJoin}>
+          <h1 style={{ margin: 0, textAlign: "center" }}>
+            {isSigningUp ? "Sign Up" : "Login"}
+          </h1>
           {isSigningUp && (
             <input
             type = "text"
@@ -277,14 +279,14 @@ async function renameChat()
           required
           />
           <button type="submit">{isSigningUp ? 'Sign Up' : 'Login'}</button>
-        </form>
 
-        <p
-          onClick={() => setIsSigningUp(!isSigningUp)}
-          style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+          <p
+            onClick={() => setIsSigningUp(!isSigningUp)}
+            style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline', margin: 0, textAlign: 'center' }}
           >
             {isSigningUp ? 'Login' : 'Sign Up'}
           </p>
+        </form>
         </div>
     )
   }
